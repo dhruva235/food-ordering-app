@@ -37,7 +37,8 @@ def login():
     return jsonify({
         "message": "Login successful",
         "user_id": str(uuid.UUID(bytes_le=user.id)),
-        "role": user.role
+        "role": user.role,
+        "name":user.name
     }), 200
 
 @user_bp.route("/", methods=["POST"])

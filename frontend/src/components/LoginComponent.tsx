@@ -26,45 +26,92 @@ const loginUser = async (credentials: { email: string; password: string }) => {
   return response.json(); // Expected { message, role, user_id, name }
 };
 
+const signUpUser = async (credentials: {
+  name: string;
+  email: string;
+  password: string;
+  role: string;
+}) => {
+  const response = await fetch("http://127.0.0.1:5000/users/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+  });
+
+  if (!response.ok) {
+    throw new Error("Signup failed. Please try again.");
+  }
+
+  return response.json(); // Expected { message, role, user_id, name }
+};
+
 interface SignInModalProps {
   open: boolean;
   onClose: () => void;
   onLoginSuccess: (user: any) => void;
+  isSignUp?: boolean;
 }
 
-const SignInModal: React.FC<SignInModalProps> = ({ open, onClose, onLoginSuccess }) => {
+const SignInModal: React.FC<SignInModalProps> = ({ open, onClose, onLoginSuccess, isSignUp = false }) => {
+  const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [role, setRole] = React.useState("user");
   const [errorMessage, setErrorMessage] = React.useState("");
 
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      localStorage.setItem("user", JSON.stringify(data));
+      sessionStorage.setItem("user", JSON.stringify(data));
       onLoginSuccess(data);
-      toast.success(`Welcome back, ${data.name}!`); // 🎉 Show success message
-      setErrorMessage(""); 
+      toast.success(`Welcome back, ${data.name}!`);
+      setErrorMessage("");
       onClose();
     },
     onError: () => {
       setErrorMessage("Invalid email or password.");
-      toast.error("Login failed. Please check your credentials."); // ❌ Show error message
+      toast.error("Login failed. Please check your credentials.");
     },
   });
 
-  const handleLogin = (e: React.FormEvent) => {
-    
+  const signUpMutation = useMutation({
+    mutationFn: signUpUser,
+    onSuccess: (data) => {
+      sessionStorage.setItem("user", JSON.stringify(data));
+      onLoginSuccess(data);
+      toast.success(`Account created! Welcome, ${data.name}!`);
+      setErrorMessage("");
+      onClose();
+    },
+    onError: () => {
+      setErrorMessage("Signup failed. Please check your details and try again.");
+      toast.error("Signup failed. Please try again.");
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
-    const existingUser = getUserFromStorage();
-    if (existingUser && existingUser.email === email) {
-      setErrorMessage("You are already logged in.");
-      toast("You are already logged in!", { icon: "ℹ️" });
-      return;
+    if (isSignUp) {
+      if (password !== confirmPassword) {
+        setErrorMessage("Passwords do not match.");
+        toast.error("Passwords do not match.");
+        return;
+      }
+      signUpMutation.mutate({ name, email, password, role });
+    } else {
+      const existingUser = getUserFromStorage();
+      if (existingUser && existingUser.email === email) {
+        setErrorMessage("You are already logged in.");
+        toast("You are already logged in!", { icon: "ℹ️" });
+        return;
+      }
+      loginMutation.mutate({ email, password });
     }
-
-    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -72,12 +119,36 @@ const SignInModal: React.FC<SignInModalProps> = ({ open, onClose, onLoginSuccess
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog-content">
-          <Dialog.Title className="dialog-title">Sign In</Dialog.Title>
+          <Dialog.Title className="dialog-title">{isSignUp ? "Sign Up" : "Sign In"}</Dialog.Title>
           <Dialog.Description className="dialog-description">
-            Enter your email and password to sign in.
+            {isSignUp ? "Create a new account." : "Enter your credentials to sign in."}
           </Dialog.Description>
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSubmit}>
+            {isSignUp && (
+              <>
+                <div className="input-group">
+                  <label htmlFor="name">Full Name</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="role">Role</label>
+                  <select id="role" name="role" value={role} onChange={(e) => setRole(e.target.value)} required>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </>
+            )}
+
             <div className="input-group">
               <label htmlFor="email">Email</label>
               <input
@@ -102,10 +173,30 @@ const SignInModal: React.FC<SignInModalProps> = ({ open, onClose, onLoginSuccess
               />
             </div>
 
+            {isSignUp && (
+              <div className="input-group">
+                <label htmlFor="confirmPassword">Confirm Password</label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
             {errorMessage && <p className="error-message" aria-live="polite">{errorMessage}</p>}
 
-            <button type="submit" className="submit-button" disabled={loginMutation.isPending}>
-              {loginMutation.isPending ? "Logging in..." : "Log In"}
+            <button type="submit" className="submit-button" disabled={loginMutation.isPending || signUpMutation.isPending}>
+              {isSignUp
+                ? signUpMutation.isPending
+                  ? "Signing up..."
+                  : "Sign Up"
+                : loginMutation.isPending
+                  ? "Logging in..."
+                  : "Log In"}
             </button>
           </form>
 

@@ -25,10 +25,12 @@
     "lucide-react": "^0.485.0",
     "mobx": "^6.13.7",
     "mobx-react-lite": "^4.1.0",
+    "pdfjs-dist": "^5.1.91",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
+    "react-pdf": "^9.2.1",
     "react-router-dom": "^7.4.1",
     "tailwind-merge": "^3.0.2",
     "tw-animate-css": "^1.2.5"

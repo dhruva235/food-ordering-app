@@ -7,18 +7,22 @@ import "./styles.css";
 import SignInModal from "@/components/LoginComponent";
 
 const getUserFromStorage = () => {
-  const userData = localStorage.getItem("user");
+  const userData = sessionStorage.getItem("user");
   return userData ? JSON.parse(userData) : null;
 };
 
 const NavigationMenuDemo = () => {
   const [isSignInOpen, setSignInOpen] = React.useState(false);
+  const [isSignUp, setIsSignUp] = React.useState(false);
   const [user, setUser] = React.useState(getUserFromStorage());
 
-  const handleSignInClick = () => setSignInOpen(true);
+  const handleAuthClick = (signUp = false) => {
+    setIsSignUp(signUp);
+    setSignInOpen(true);
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("user"); // Clear user data
+    sessionStorage.removeItem("user"); // Clear user data
     setUser(null); // Update state
   };
 
@@ -36,9 +40,23 @@ const NavigationMenuDemo = () => {
             <Link to="/find-food" className="nav-link">Find Food</Link>
           </NavigationMenu.Item>
 
-       { user && user.role == "admin" &&  <NavigationMenu.Item>
-            <Link to="/manage-users" className="nav-link">Manage Users</Link>
-          </NavigationMenu.Item>}
+          <NavigationMenu.Item >
+<Link to="/pending_orders" className="nav-link">Pending Orders</Link>
+           
+          </NavigationMenu.Item>
+
+          <NavigationMenu.Item >
+<Link to="/old" className="nav-link">old</Link>
+           
+          </NavigationMenu.Item>
+
+          {user && user.role === "admin" && (
+            <NavigationMenu.Item>
+              <Link to="/manage-users" className="nav-link">Manage Users</Link>
+            </NavigationMenu.Item>
+          )}
+
+
 
           <NavigationMenu.Item>
             <button className="icon-button">
@@ -54,22 +72,29 @@ const NavigationMenuDemo = () => {
               </button>
             </NavigationMenu.Item>
           ) : (
-            <NavigationMenu.Item>
-              <button className="auth-button sign-in" onClick={handleSignInClick}>
-                Sign In
-              </button>
-            </NavigationMenu.Item>
-            //   <NavigationMenu.Item>
-            //   <button className="auth-button sign-in" onClick={handleSignInClick}>
-            //     Sign Up
-            //   </button>
-            // </NavigationMenu.Item>
+            <>
+              <NavigationMenu.Item>
+                <button className="auth-button sign-in" onClick={() => handleAuthClick(false)}>
+                  Sign In
+                </button>
+              </NavigationMenu.Item>
+              <NavigationMenu.Item>
+                <button className="auth-button sign-up" onClick={() => handleAuthClick(true)}>
+                  Sign Up
+                </button>
+              </NavigationMenu.Item>
+            </>
           )}
         </NavigationMenu.List>
       </NavigationMenu.Root>
 
-      {/* Sign In Modal */}
-      <SignInModal open={isSignInOpen} onClose={() => setSignInOpen(false)} onLoginSuccess={setUser} />
+      {/* Sign In / Sign Up Modal */}
+      <SignInModal
+        open={isSignInOpen}
+        onClose={() => setSignInOpen(false)}
+        onLoginSuccess={setUser}
+        isSignUp={isSignUp}
+      />
     </>
   );
 };

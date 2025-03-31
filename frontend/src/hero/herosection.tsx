@@ -1,47 +1,140 @@
-import React from "react";
-import { Button } from "@radix-ui/themes";
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import "./HeroSection.css";
 import burgerImage from "../assets/burger.avif";
 import SelectDemo from "./bookingForm";
-import UserList from "../components/useList";
+// import { useLocation, useNavigate } from "react-router-dom";
 
 const getUserFromStorage = () => {
-  const userData = localStorage.getItem("user");
+  const userData = sessionStorage.getItem("user");
   return userData ? JSON.parse(userData) : null;
 };
 
+// const navigate = useNavigate();
+
+// Changing text animations
+const messages = [
+  "🍔 Order Your Favorite Meals!",
+  "🥗 Fresh & Healthy Choices!",
+  "🚀 Fastest Delivery in Town!",
+];
+
 const HeroSection = () => {
   const user = getUserFromStorage();
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  // Change hero text every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % messages.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <>
-      <Toaster position="top-right" /> {/* 🔔 Add toast notifications */}
+      <Toaster position="top-right" />
       <section className="hero-section">
-        <div className="hero-content">
-          <span className="small-text">🍔 EASY WAY TO ORDER YOUR FOOD</span>
-          <h1>Choosing Healthy & Fresh Food</h1>
-          <p>Just confirm your order and enjoy our delicious fastest delivery.</p>
+        {/* Hero Content */}
+        <motion.div
+          className="hero-content"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.span
+            className="small-text"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5 }}
+          >
+            🍔 EASY WAY TO ORDER YOUR FOOD
+          </motion.span>
+
+          <motion.h1
+            key={messageIndex} // Key change triggers re-render
+            className="dynamic-text"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.7 }}
+          >
+            {messages[messageIndex]}
+          </motion.h1>
+
+          <motion.p
+            className="hero-description"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.5 }}
+          >
+            Just confirm your order and enjoy our delicious fastest delivery.
+          </motion.p>
 
           {user ? (
-            <p className="welcome-message">👋 Welcome, <strong>{user.name}</strong>!</p>
+            <motion.p
+              className="welcome-message"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.2 }}
+            >
+              👋 Welcome, <strong>{user.name}</strong>!
+            </motion.p>
           ) : (
-            <p className="welcome-message">Sign in to get personalized offers!</p>
+            <motion.p
+              className="welcome-message"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.2 }}
+            >
+              Sign in to get personalized offers!
+            </motion.p>
           )}
 
-          <div className="button-group">
-            <Button className="order-now">Order Now</Button>
-            <Button className="see-menu">See Menu</Button>
-          </div>
-        </div>
+          <motion.div
+            className="button-group"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            <motion.button
+              className="order-now"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              // onClick={() => useNavigate(); }
+            >
+              Order Now 🚀
+            </motion.button>
 
-        <div className="hero-image">
-          <img src={burgerImage} alt="Delicious Burger" />
-        </div>
+            <motion.button
+              className="see-menu"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              // onClick={() => navigate("/find-food")}
+            >
+              See Menu 📖
+            </motion.button>
+          </motion.div>
+        </motion.div>
+
+        {/* Hero Image */}
+        <motion.div
+          className="hero-image"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1 }}
+        >
+          <motion.img
+            src={burgerImage}
+            alt="Delicious Burger"
+            className="food-image"
+            whileHover={{ scale: 1.05 }}
+          />
+        </motion.div>
       </section>
 
       <SelectDemo />
-      <UserList />
     </>
   );
 };

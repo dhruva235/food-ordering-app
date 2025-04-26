@@ -12,7 +12,9 @@ os.makedirs(PDF_DIR, exist_ok=True)
 
 def generate_pdf(order, receipt_id):
     """Generate a user-friendly PDF for the order receipt with header, address, and footer."""
-    pdf_path = os.path.join(PDF_DIR, f"{uuid.UUID(bytes=receipt_id)}.pdf")
+    
+    # ✅ Use receipt_id as a string instead of converting to bytes
+    pdf_path = os.path.join(PDF_DIR, f"{receipt_id}.pdf")
 
     c = canvas.Canvas(pdf_path, pagesize=letter)
 
@@ -31,8 +33,8 @@ def generate_pdf(order, receipt_id):
     c.drawString(220, 730, "Order Receipt")
 
     c.setFont("Helvetica", 12)
-    c.drawString(50, 690, f"Receipt ID: {str(uuid.UUID(bytes=receipt_id))}")
-    c.drawString(50, 670, f"Order ID: {order.get_uuid()}")
+    c.drawString(50, 690, f"Receipt ID: {receipt_id}")  # ✅ Use directly
+    c.drawString(50, 670, f"Order ID: {order.id}")
     c.drawString(50, 650, f"Total Price: ${order.total_price:.2f}")
     c.drawString(50, 630, f"Status: {order.status}")
 

@@ -24,7 +24,7 @@ app.register_blueprint(food_bp,url_prefix="/menu")
 app.register_blueprint(order_bp,url_prefix="/orders")
 
 if __name__ == "__main__":
-    app.url_map.strict_slashes = Falses
+    app.url_map.strict_slashes = False
     app.run(debug=True)
     CORS(app)
     CORS(app, resources={r"/users/*": {"origins": "*"}})

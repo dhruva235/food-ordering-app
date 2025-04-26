@@ -1,22 +1,27 @@
+import os
 import uuid
+import traceback
 from flask import jsonify, send_file
 from commands.genatrepdf import generate_pdf
 from constants.enums import OrderStatus
 from extensions import db
 from models import FoodItem, Order, OrderItem, Receipt
 
-class OrderCommands:
 
+class OrderCommands:
+    
     # 🟢 Create Order
     @staticmethod
     def place_order(user_id, order_items):
+        print(f"User ID received: {user_id}")
+
         if not user_id or not order_items:
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Create order
+        # Create order with string UUID
         new_order = Order(
-            id=uuid.uuid4().bytes,
-            user_id=uuid.UUID(user_id).bytes,
+            id=str(uuid.uuid4()),
+            user_id=user_id,
             total_price=sum(item["price"] * item["quantity"] for item in order_items),
             status=OrderStatus.PENDING.value
         )
@@ -37,8 +42,8 @@ class OrderCommands:
         db.session.commit()
 
         return jsonify({
-            "id": str(uuid.UUID(bytes=new_order.id)),
-            "user_id": str(uuid.UUID(bytes=new_order.user_id)),
+            "id": new_order.id,
+            "user_id": new_order.user_id,
             "total_price": new_order.total_price,
             "status": new_order.status,
             "order_items": [
@@ -55,16 +60,10 @@ class OrderCommands:
     # 🟠 Update Order Status
     @staticmethod
     def update_order_status(order_id, status):
-        try:
-            binary_uuid = uuid.UUID(order_id).bytes
-        except ValueError:
-            return jsonify({"error": "Invalid UUID format"}), 400
-
-        order = Order.query.get(binary_uuid)
+        order = Order.query.filter_by(id=order_id).first()
         if not order:
             return jsonify({"error": "Order not found"}), 404
 
-        # Validate status using Enum
         if status not in [s.value for s in OrderStatus]:
             return jsonify({"error": "Invalid status"}), 400
 
@@ -73,20 +72,22 @@ class OrderCommands:
 
         return jsonify({"message": "Order status updated successfully", "status": order.status})
 
-    # 📤 Send Order (Mark as Sent)
+    # 📤 Send Order
     @staticmethod
     def send_order(order_id):
         try:
-            order = Order.query.filter_by(id=uuid.UUID(order_id).bytes).first_or_404(description="Order not found")
+            print(f"Received order_id: {order_id} ({type(order_id)})")  # Debug log
+
+            order = Order.query.filter_by(id=order_id).first_or_404(description="Order not found")
 
             if order.status != OrderStatus.PENDING.value:
                 return jsonify({"error": "Order is not in pending state"}), 400
 
             # Update status and generate receipt
-            order.status  = OrderStatus.SENT.value
+            order.status = OrderStatus.SENT.value
             db.session.commit()
 
-            receipt_id = uuid.uuid4().bytes
+            receipt_id = str(uuid.uuid4())
             pdf_path = generate_pdf(order, receipt_id)
 
             receipt = Receipt(order_id=order.id, file_path=pdf_path)
@@ -96,36 +97,58 @@ class OrderCommands:
             return jsonify({"message": "Order sent successfully", "receipt_pdf": pdf_path}), 200
 
         except Exception as e:
-            return jsonify({"error": str(e)}), 500  
+            print("Error Traceback:", traceback.format_exc())
+            return jsonify({"error": str(e)}), 500
 
-    # 📥 Download Receipt
+    # 📥 Download Receipt by Order ID (Now returning order info instead of PDF)
     @staticmethod
-    def download_receipt(order_id):
+    def download_receipt_by_order_id(order_id):
         try:
-            receipt = Receipt.query.filter_by(order_id=uuid.UUID(order_id).bytes).first_or_404(description="Receipt not found")
-            return send_file(receipt.file_path, as_attachment=True)
+            order = Order.query.filter_by(id=order_id).first()
+            if not order:
+                return jsonify({"error": "Order not found"}), 404
+
+            # Return order information instead of PDF
+            receipt_info = {
+                "receipt_id": str(uuid.uuid4()),  # Generate receipt ID dynamically
+                "order_id": order.id,
+                "total_price": order.total_price,
+                "status": order.status,
+                "items": [
+                    {
+                        "name": FoodItem.query.get(item.food_id).name,
+                        "quantity": item.quantity,
+                        "price": FoodItem.query.get(item.food_id).price
+                    }
+                    for item in order.order_items
+                ]
+            }
+            return jsonify(receipt_info), 200
 
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            print("Error downloading receipt:", e)
+            return jsonify({"error": "Receipt not found"}), 404
+
+    # 📝 Get All Orders
     @staticmethod
     def get_all_orders():
         orders = Order.query.all()
 
-        return [
-        {
-            "id": str(uuid.UUID(bytes=order.id)),
-            "user_id": str(uuid.UUID(bytes=order.user_id)),
-            "total_price": order.total_price,
-            "status": order.status,
-            "order_items": [
-                {
-                    "name": food.name,
-                    "price": food.price,
-                    "quantity": item.quantity
-                }
-                for item in order.order_items
-                for food in [FoodItem.query.get(item.food_id)]
-            ]
-        }
-        for order in orders
-    ]
+        return jsonify([
+            {
+                "id": order.id,
+                "user_id": order.user_id,
+                "total_price": order.total_price,
+                "status": order.status,
+                "order_items": [
+                    {
+                        "name": food.name,
+                        "price": food.price,
+                        "quantity": item.quantity
+                    }
+                    for item in order.order_items
+                    for food in [FoodItem.query.get(item.food_id)]
+                ]
+            }
+            for order in orders
+        ])

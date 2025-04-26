@@ -1,23 +1,17 @@
-import datetime
-from flask import Blueprint, current_app, request, jsonify
-from werkzeug.security import generate_password_hash
-from extensions import db
-from models import User
 import uuid
 import re
+from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
 from extensions import db
 from models import User
-import uuid
-import re
-import jwt
-from sqlalchemy.exc import IntegrityError
 
 user_bp = Blueprint("user_bp", __name__, url_prefix="/api/users")
 
 # Email validation regex
 EMAIL_REGEX = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
 
+### ✅ User Login API
 @user_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
@@ -33,14 +27,14 @@ def login():
     if not user or not check_password_hash(user.password, data["password"]):
         return jsonify({"error": "Invalid email or password"}), 401
 
-
     return jsonify({
         "message": "Login successful",
-        "user_id": str(uuid.UUID(bytes_le=user.id)),
+        "user_id": user.id,  # UUID is stored as string, no conversion needed
         "role": user.role,
-        "name":user.name
+        "name": user.name
     }), 200
 
+### ✅ User Registration API
 @user_bp.route("/", methods=["POST"])
 def register_user():
     data = request.json
@@ -60,14 +54,14 @@ def register_user():
 
     hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256", salt_length=16)
 
-    new_user = User(name=data["name"], email=data["email"], password=hashed_password, role=data["role"])
+    new_user = User(id=str(uuid.uuid4()), name=data["name"], email=data["email"], password=hashed_password, role=data["role"])
 
     try:
         db.session.add(new_user)
         db.session.commit()
         return jsonify({
             "message": f"{data['role'].capitalize()} user registered successfully",
-            "user_id": str(uuid.UUID(bytes=new_user.id))
+            "user_id": new_user.id  # UUID stored as string, no need for conversion
         }), 201
     except IntegrityError:
         db.session.rollback()
@@ -76,22 +70,24 @@ def register_user():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
+### ✅ Get User by ID API
 @user_bp.route("/<string:user_id>", methods=["GET"])
 def get_user(user_id):
     try:
-        user_uuid = uuid.UUID(user_id).bytes  # Convert UUID string to bytes for MySQL query
-        user = User.query.get(user_uuid)
+        # Check if user exists
+        user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
+
         return jsonify({
-            "id": str(uuid.UUID(bytes=user.id)),  # Convert BINARY(16) back to UUID string
+            "id": user.id,
             "name": user.name,
             "email": user.email
         }), 200
     except ValueError:
         return jsonify({"error": "Invalid UUID format"}), 400
 
+### ✅ Get All Users API
 @user_bp.route("/", methods=["GET"])
 def get_all_users():
     users = User.query.all()
@@ -100,7 +96,7 @@ def get_all_users():
 
     users_list = [
         {
-            "id": str(uuid.UUID(bytes=user.id)),  # Convert BINARY(16) back to UUID string
+            "id": user.id,
             "name": user.name,
             "email": user.email
         }

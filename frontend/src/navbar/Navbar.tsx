@@ -50,6 +50,17 @@ const NavigationMenuDemo = () => {
            
           </NavigationMenu.Item>
 
+          <NavigationMenu.Item >
+<Link to="/tables" className="nav-link">Tables</Link>
+
+           
+          </NavigationMenu.Item>
+          <NavigationMenu.Item >
+<Link to="/bookings"className="nav-link">Bookings</Link>
+
+           
+          </NavigationMenu.Item>
+
           {user && user.role === "admin" && (
             <NavigationMenu.Item>
               <Link to="/manage-users" className="nav-link">Manage Users</Link>

@@ -17,7 +17,7 @@ class TabelCommands:
     @staticmethod
     def get_table_by_id(table_id):
         """Fetch a table by its UUID"""
-        table = Table.query.get(uuid.UUID(table_id).bytes)
+        table = Table.query.filter_by(id=table_id).first()
         if not table:
             return None
         return TableDTO(
@@ -31,7 +31,7 @@ class TabelCommands:
     def create_table(table_number):
         """Create a new table with a given table number"""
         new_table = Table(
-            id=uuid.uuid4().bytes,  # Generate UUID
+            id=str(uuid.uuid4()),  # Store as string UUID
             table_number=table_number,
             booking_id=None,
             user_id=None,
@@ -62,7 +62,7 @@ class TabelCommands:
     @staticmethod
     def free_table(table_id):
         """Mark an individual table as free (available)"""
-        table = Table.query.get(uuid.UUID(table_id).bytes)
+        table = Table.query.filter_by(id=table_id).first()
         if not table:
             return None
         

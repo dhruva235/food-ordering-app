@@ -7,6 +7,8 @@ import UserList from "./components/useList";
 import FindFood from "./components/food/FindFood";
 import OrderList from "./components/food/Oderlist";
 import UserOrders from "./components/food/UserOrders";
+import TableView from "./components/tables/tableview";
+import BookingsView from "./components/bookings/Bookings";
 
 export default function App() {
   return (
@@ -20,8 +22,11 @@ export default function App() {
         <Route path="/manage-users" element={<UserList />} />
         <Route path = '/find-food' element={<FindFood/>}/>
         <Route path="/pending_orders" element={<OrderList/>}/>
-        <Route path="/old" element={<UserOrders userId="0f0f8193-08f2-45a8-8476-29a1dd5052c5" />
+        <Route path="/old" element={<UserOrders userId="9daa1b20-2f99-4c35-8f77-2f390adab1f8" />
+       
 }/>
+ <Route path="/tables" element={<TableView/>}/>
+ <Route path="/bookings" element={<BookingsView/>}/>
       </Routes>
     </Router>
   );

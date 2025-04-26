@@ -19,32 +19,42 @@ def book_table():
     return booking_dto  # Return the response directly from the BookingCommands
 
 @booking_bp.route("/", methods=["GET"])
-def get_bookings():
-    bookings_dto = BookingCommands.get_all_bookings()
-    return jsonify([b.to_dict() for b in bookings_dto])
+def get_all_bookings():
+    try:
+        bookings = TableBooking.query.all()
+        # Return all bookings converted into DTOs, including tables
+        return jsonify([BookingDTO(b.id, b.user_id, b.date, b.time, b.status, b.tables).to_dict() for b in bookings]), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @booking_bp.route("/<string:booking_uuid>", methods=["GET"])
 def get_individual_booking(booking_uuid):
     try:
-        binary_uuid = uuid.UUID(booking_uuid).bytes  # Convert string UUID to binary
-        booking = TableBooking.query.get(binary_uuid)  # Query using binary UUID
+        # Fetch the booking by the UUID
+        booking = TableBooking.query.get(booking_uuid)
         
         if booking is None:
             return jsonify({"error": "Booking not found"}), 404
 
+        # Prepare a DTO object to send as a response
         booking_dto = BookingDTO(
             id=booking.id,
             user_id=booking.user_id,
             date=booking.date,
             time=booking.time,
             status=booking.status,
-            tables=booking.tables
+            tables=booking.tables  # Assuming tables is a related attribute to the booking
         )
 
         return jsonify(booking_dto.to_dict()), 200
 
     except ValueError:
         return jsonify({"error": "Invalid UUID format"}), 400
+    except Exception as e:
+        # Log the exception and return a generic error message
+        print(f"Error fetching booking: {str(e)}")
+        return jsonify({"error": "An error occurred while fetching the booking"}), 500
+
 
 
 @booking_bp.route("/<string:booking_id>", methods=["PUT"])

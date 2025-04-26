@@ -10,11 +10,11 @@ class FoodCommands:
             description=description,
             price=price,
             image_url=image_url,
-            category=category  # Changed from type → category
+            category=category
         )
         db.session.add(new_food)
         db.session.commit()
-        return FoodItemDTO(new_food.get_uuid(), new_food.name, new_food.description, new_food.price, new_food.image_url, new_food.category)
+        return FoodItemDTO(new_food.id, new_food.name, new_food.description, new_food.price, new_food.image_url, new_food.category)
 
     @staticmethod
     def get_all_food_items(category=None):
@@ -22,7 +22,7 @@ class FoodCommands:
         if category:
             query = query.filter(FoodItem.category == category)
         food_items = query.all()
-        return [FoodItemDTO(item.get_uuid(), item.name, item.description, item.price, item.image_url, item.category) for item in food_items]
+        return [FoodItemDTO(item.id, item.name, item.description, item.price, item.image_url, item.category) for item in food_items]
 
     @staticmethod
     def get_all_categories():

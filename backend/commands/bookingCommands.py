@@ -1,8 +1,8 @@
 import datetime
-import uuid
-from flask import request, jsonify
+from flask import jsonify
 from constants.enums import BookingStatus
 from models import Table, TableBooking
+import uuid
 from dto.bookingDto import BookingDTO
 from extensions import db
 
@@ -10,7 +10,8 @@ class BookingCommands:
     @staticmethod
     def create_booking(user_id, date, time):
         try:
-            user_id_bytes = uuid.UUID(user_id).bytes
+            # Ensure user_id is in UUID string format
+            user_id_bytes = str(uuid.UUID(user_id))  # Ensure user_id is a string representation of UUID
 
             # Check the number of bookings for the user
             existing_bookings = TableBooking.query.filter_by(user_id=user_id_bytes).count()
@@ -28,16 +29,17 @@ class BookingCommands:
                 user_id=user_id_bytes,
                 date=booking_date,
                 time=time,
-                status=BookingStatus.PENDING.value  # Use Enum
+                status=BookingStatus.PENDING.value  # Use Enum for status
             )
             db.session.add(new_booking)
             db.session.commit()
 
+            # Convert booking to DTO
             booking_dto = BookingDTO(
-                str(uuid.UUID(bytes=new_booking.id)), 
-                str(uuid.UUID(bytes=new_booking.user_id)),
-                new_booking.date, 
-                new_booking.time, 
+               new_booking.id,
+                new_booking.user_id,
+                new_booking.date,
+                new_booking.time,
                 new_booking.status
             )
             return jsonify(booking_dto.to_dict()), 201
@@ -49,44 +51,92 @@ class BookingCommands:
 
     @staticmethod
     def get_all_bookings():
-        bookings = TableBooking.query.all()
-        return [BookingDTO(b.id, b.user_id, b.date, b.time, b.status) for b in bookings]
+        try:
+            bookings = TableBooking.query.all()
+            # Return all bookings converted into DTOs
+            return jsonify([BookingDTO(b.id, b.user_id, b.date, b.time, b.status).to_dict() for b in bookings]), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
     def get_booking_by_id(booking_id):
-        booking = TableBooking.query.get(booking_id)
-        if not booking:
-            return None
-        return BookingDTO(booking.id, booking.user_id, booking.date, booking.time, booking.status)
+        try:
+            # Ensure booking_id is in string format, and attempt to convert it to UUID
+            booking_id = str(booking_id)  # Convert booking_id to string to ensure proper comparison
+
+            # Debugging print statement
+            print(f"Attempting to retrieve booking with ID: {booking_id}")
+
+            # Attempt to get the booking from the database by its UUID
+            booking = TableBooking.query.get(booking_id)
+            
+            # Debugging print to check the result of the query
+            print(f"Booking fetched: {booking}")
+
+            if not booking:
+                return jsonify({"error": "Booking not found"}), 404
+
+            booking_dto = BookingDTO(
+                booking.id,
+                booking.user_id,
+                booking.date,
+                booking.time,
+                booking.status
+            )
+            return jsonify(booking_dto.to_dict()), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
     def update_booking_status(booking_id, status):
         if status not in [e.value for e in BookingStatus]:  # Ensure valid status
             return jsonify({"error": "Invalid booking status"}), 400
 
-        booking = TableBooking.query.get(booking_id)
-        if not booking:
-            return None
+        try:
+            # Ensure booking_id is in string format
+            booking_id = str(booking_id)
+            booking = TableBooking.query.get(booking_id)
+            if not booking:
+                return jsonify({"error": "Booking not found"}), 404
 
-        booking.status = status
-        db.session.commit()
-        return BookingDTO(booking.id, booking.user_id, booking.date, booking.time, booking.status)
+            booking.status = status
+            db.session.commit()
+
+            booking_dto = BookingDTO(
+                booking.id,
+                booking.user_id,
+                booking.date,
+                booking.time,
+                booking.status
+            )
+            return jsonify(booking_dto.to_dict()), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
     def delete_booking(booking_id):
-        booking = TableBooking.query.get(booking_id)
-        if not booking:
-            return None
-        db.session.delete(booking)
-        db.session.commit()
-        return True  
+        try:
+            # Ensure booking_id is in string format
+            booking_id = str(booking_id)
+            booking = TableBooking.query.get(booking_id)
+            if not booking:
+                return jsonify({"error": "Booking not found"}), 404
+
+            db.session.delete(booking)
+            db.session.commit()
+            return jsonify({"message": "Booking deleted successfully"}), 200
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @staticmethod
     def assign_table(booking_id, table_number):
         try:
-            # Convert booking_id to UUID format for querying
-            booking_uuid = uuid.UUID(booking_id).bytes
-            booking = TableBooking.query.get(booking_uuid)
+            # Ensure booking_id is in string format
+            booking_id = str(booking_id)
+            booking = TableBooking.query.get(booking_id)
 
             if not booking:
                 return jsonify({"error": "Booking not found"}), 404
@@ -119,7 +169,7 @@ class BookingCommands:
             return jsonify({
                 "message": "Table assigned successfully",
                 "booking_id": booking_id,
-                "table_id": new_table.get_uuid(),
+                "table_id": new_table.id,
                 "status": BookingStatus.CONFIRMED.value
             }), 200
 

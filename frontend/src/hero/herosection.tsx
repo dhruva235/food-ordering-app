@@ -4,14 +4,15 @@ import toast, { Toaster } from "react-hot-toast";
 import "./HeroSection.css";
 import burgerImage from "../assets/burger.avif";
 import SelectDemo from "./bookingForm";
-// import { useLocation, useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const getUserFromStorage = () => {
   const userData = sessionStorage.getItem("user");
   return userData ? JSON.parse(userData) : null;
 };
 
-// const navigate = useNavigate();
+
 
 // Changing text animations
 const messages = [
@@ -23,6 +24,7 @@ const messages = [
 const HeroSection = () => {
   const user = getUserFromStorage();
   const [messageIndex, setMessageIndex] = useState(0);
+  const navigate = useNavigate();
 
   // Change hero text every 3 seconds
   useEffect(() => {
@@ -102,7 +104,7 @@ const HeroSection = () => {
               className="order-now"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              // onClick={() => useNavigate(); }
+              onClick={() => navigate("/find-food")}
             >
               Order Now 🚀
             </motion.button>
@@ -111,7 +113,8 @@ const HeroSection = () => {
               className="see-menu"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              // onClick={() => navigate("/find-food")}
+              onClick={() => navigate("/menus")}
+             
             >
               See Menu 📖
             </motion.button>

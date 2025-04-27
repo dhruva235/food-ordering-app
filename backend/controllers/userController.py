@@ -103,3 +103,49 @@ def get_all_users():
         for user in users
     ]
     return jsonify(users_list), 200
+
+### ✅ Forgot Password API
+@user_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.json
+
+    if "email" not in data:
+        return jsonify({"error": "Email is required"}), 400
+
+    if not re.match(EMAIL_REGEX, data["email"]):
+        return jsonify({"error": "Invalid email format"}), 400
+
+    user = User.query.filter_by(email=data["email"]).first()
+
+    if not user:
+        return jsonify({"error": "Email not found"}), 404
+
+    # For real-world use, an email would be sent here for password reset instructions
+    return jsonify({"message": "Password reset email sent. Please check your inbox."}), 200
+
+### ✅ Reset Password API
+@user_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    data = request.json
+
+    if "email" not in data or "new_password" not in data:
+        return jsonify({"error": "Email and new password are required"}), 400
+
+    if not re.match(EMAIL_REGEX, data["email"]):
+        return jsonify({"error": "Invalid email format"}), 400
+
+    user = User.query.filter_by(email=data["email"]).first()
+
+    if not user:
+        return jsonify({"error": "Email not found"}), 404
+
+    # Update the user's password with the provided new password
+    new_password = data["new_password"]
+    user.password = generate_password_hash(new_password, method="pbkdf2:sha256", salt_length=16)
+
+    try:
+        db.session.commit()
+        return jsonify({"message": "Password reset successful. You can now log in with your new password."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500

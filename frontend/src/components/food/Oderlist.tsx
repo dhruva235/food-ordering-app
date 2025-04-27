@@ -3,7 +3,6 @@ import axios from 'axios';
 import { CheckCircle, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@radix-ui/themes/components/button';
-// import { Button } from 'radix-ui/react-button';
 
 interface OrderItem {
   name: string;
@@ -69,8 +68,8 @@ const OrderList = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <h2 className="text-2xl font-semibold mb-6">Pending Orders</h2>
+    <div className="container mx-auto p-6 space-y-6 bg-gradient-to-r from-blue-100 to-white">
+      <h2 className="text-4xl font-extrabold text-center text-gray-800">Pending Orders</h2>
 
       {/* Animated Success Message */}
       <AnimatePresence>
@@ -80,9 +79,9 @@ const OrderList = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -20, opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            className="flex items-center justify-center bg-green-500 text-white py-2 px-4 rounded-md mb-4 shadow-md"
+            className="flex items-center justify-center bg-green-200 text-gray-800 py-3 px-6 rounded-lg mb-4 shadow-md ring-2 ring-green-500"
           >
-            <CheckCircle className="mr-2" size={24} />
+            <CheckCircle className="mr-3" size={28} />
             {successMessage}
           </motion.div>
         )}
@@ -96,42 +95,43 @@ const OrderList = () => {
             animate={{ x: 0 }}
             exit={{ x: "100vw", opacity: 0 }}
             transition={{ duration: 2, ease: "easeInOut" }}
-            className="flex justify-center items-center mt-4 text-lg"
+            className="flex justify-center items-center mt-6 text-xl font-semibold text-teal-600"
           >
             🚌 Order is on the way!
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="space-y-4">
+      {/* Grid for Orders */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {orders.length === 0 ? (
-          <p className="text-gray-500">No pending orders.</p>
+          <p className="text-gray-600 text-lg text-center col-span-3">No pending orders.</p>
         ) : (
           orders.map((order) => (
             <AnimatePresence key={order.id}>
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.5 }}
+                exit={{ opacity: 0, scale: 0.85 }}
                 transition={{ duration: 0.4, ease: "easeInOut" }}
-                className="bg-white shadow-md rounded-lg p-4"
+                className="bg-white shadow-md rounded-lg p-4 border border-gray-300 hover:shadow-lg transition-transform"
               >
-                <h3 className="font-semibold">Order ID: {order.id}</h3>
+                <h3 className="font-semibold text-lg text-gray-800 mb-2">Order ID: {order.id}</h3>
                 <ul className="space-y-2">
                   {order.order_items.map((item, index) => (
-                    <li key={index} className="flex justify-between">
+                    <li key={index} className="flex justify-between text-sm text-gray-800">
                       <span>{item.name}</span>
                       <span>{item.quantity} x ${item.price.toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="flex justify-between mt-4">
-                  <span>Total Price: ${order.total_price.toFixed(2)}</span>
-                  <motion.div whileTap={{ scale: 0.9 }} whileHover={{ scale: 1.05 }}>
+                  <span className="font-medium text-lg text-gray-700">Total: ${order.total_price.toFixed(2)}</span>
+                  <motion.div whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.05 }}>
                     <Button
                       onClick={() => handleSendOrder(order.id)}
                       disabled={loading === order.id || sentOrders.includes(order.id)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md flex items-center"
+                      className="px-4 py-2 bg-indigo-400 text-white rounded-lg flex items-center shadow-md transition-transform duration-200 hover:scale-105"
                     >
                       {loading === order.id ? (
                         <motion.span

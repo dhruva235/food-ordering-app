@@ -9,24 +9,30 @@ import OrderList from "./components/food/Oderlist";
 import UserOrders from "./components/food/UserOrders";
 import TableView from "./components/tables/tableview";
 import BookingsView from "./components/bookings/Bookings";
+import React from "react";
+import Menu from "./hero/menu";
 
 export default function App() {
+
+  const getUserFromStorage = () => {
+    const userData = sessionStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
+  };
+  const [user, setUser] = React.useState(getUserFromStorage());  
+
   return (
     <Router>
-      {/* ✅ Navigation Always Present */}
       <NavigationMenuDemo />
 
-      {/* ✅ Page Content Changes, but Navigation Stays */}
       <Routes>
         <Route path="/" element={<HeroSection />} />
         <Route path="/manage-users" element={<UserList />} />
-        <Route path = '/find-food' element={<FindFood/>}/>
-        <Route path="/pending_orders" element={<OrderList/>}/>
-        <Route path="/old" element={<UserOrders userId="9daa1b20-2f99-4c35-8f77-2f390adab1f8" />
-       
-}/>
- <Route path="/tables" element={<TableView/>}/>
- <Route path="/bookings" element={<BookingsView/>}/>
+        <Route path="/find-food" element={<FindFood />} />
+        <Route path="/pending_orders" element={<OrderList />} />
+        <Route path="/old" element={<UserOrders userId={user?.user_id} />} />
+        <Route path="/tables" element={<TableView />} />
+        <Route path="/bookings" element={<BookingsView />} />
+        <Route path="/menus" element={<Menu/>} />
       </Routes>
     </Router>
   );

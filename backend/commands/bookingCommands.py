@@ -1,6 +1,7 @@
 import datetime
 from flask import jsonify
 from constants.enums import BookingStatus
+from dto.tabelDto import TableDTO
 from models import Table, TableBooking
 import uuid
 from dto.bookingDto import BookingDTO
@@ -15,8 +16,8 @@ class BookingCommands:
 
             # Check the number of bookings for the user
             existing_bookings = TableBooking.query.filter_by(user_id=user_id_bytes).count()
-            if existing_bookings >= 2:
-                return jsonify({"message": "User has reached the maximum booking limit of 2."}), 400
+            if existing_bookings >= 10:
+                return jsonify({"message": "User has reached the maximum booking limit of 10."}), 200
 
             # Validate and convert date format
             try:
@@ -36,7 +37,7 @@ class BookingCommands:
 
             # Convert booking to DTO
             booking_dto = BookingDTO(
-               new_booking.id,
+                new_booking.id,
                 new_booking.user_id,
                 new_booking.date,
                 new_booking.time,
@@ -57,6 +58,29 @@ class BookingCommands:
             return jsonify([BookingDTO(b.id, b.user_id, b.date, b.time, b.status).to_dict() for b in bookings]), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+        
+    @staticmethod
+    def get_all_bookings_by_user(user_id):
+        try:
+            # Validate user_id as a valid UUID
+            try:
+                uuid.UUID(user_id)  # Validate UUID format
+            except ValueError:
+                return {"error": "Invalid UUID format for user_id"}, 400  # Return data, not jsonify
+
+            # Query the bookings for the provided user_id
+            bookings = TableBooking.query.filter_by(user_id=user_id).all()
+
+            # If no bookings are found for the user
+            if not bookings:
+                return {"message": "No bookings found for the given user_id."}, 404
+
+            # Return the bookings in the response as DTOs (just return the data, not jsonify here)
+            booking_data = [BookingDTO(b.id, b.user_id, b.date, b.time, b.status).to_dict() for b in bookings]
+            return booking_data, 200 
+
+        except Exception as e:
+            return {"error": str(e)}, 500    
 
     @staticmethod
     def get_booking_by_id(booking_id):
@@ -141,38 +165,50 @@ class BookingCommands:
             if not booking:
                 return jsonify({"error": "Booking not found"}), 404
 
-            # Check if the table is already assigned on the same date
-            existing_table = Table.query.filter_by(table_number=table_number, booking_date=booking.date).first()
-            if existing_table:
-                return jsonify({"error": "Table already assigned for this date"}), 400
+            # Find the table by table_number for the specified booking date
+            table = Table.query.filter_by(table_number=table_number).first()
 
-            # Check if a table is already assigned for this booking
-            assigned_table = next((t for t in booking.tables if t.booking_status == BookingStatus.CONFIRMED.value), None)
-            if assigned_table:
-                return jsonify({"message": f"This booking already has an assigned table: {assigned_table.table_number}"}), 200
+            if not table:
+                return jsonify({"error": "Table not found for this booking on the specified date."}), 400
 
-            # Assign the table using existing booking details
-            new_table = Table(
-                booking_id=booking.id,
-                user_id=booking.user_id,
-                table_number=table_number,
-                booking_date=booking.date,
-                booking_time=booking.time,
-                booking_status=BookingStatus.CONFIRMED.value,
-                is_booked=True
-            )
+            # Check if the table is already booked
+            if table.is_booked:
+                return jsonify({
+                    "message": f"Table {table_number} is already booked for this date."
+                }), 400
 
-            db.session.add(new_table)
-            booking.status = BookingStatus.CONFIRMED.value  # Update booking status
+            # If the table is not booked, assign it
+            table.booking_id = booking.id
+            table.user_id = booking.user_id
+            table.booking_date = booking.date
+            table.booking_time = booking.time
+            table.booking_status = BookingStatus.CONFIRMED.value  # Update the table status to CONFIRMED
+            table.is_booked = True  # Mark the table as booked
+
+            # Update the booking's status to CONFIRMED as well
+            booking.status = BookingStatus.CONFIRMED.value
+
+            # Commit changes to the database
             db.session.commit()
 
+            # Prepare and return the updated table and booking details
+            table_dto = TableDTO(
+                table.id, table.booking_id, table.user_id,
+                table.table_number, table.booking_date, table.booking_time,
+                table.booking_status, table.is_booked
+            )
+
+            booking_dto = BookingDTO(
+                booking.id, booking.user_id, booking.date,
+                booking.time, booking.status
+            )
+
             return jsonify({
-                "message": "Table assigned successfully",
-                "booking_id": booking_id,
-                "table_id": new_table.id,
-                "status": BookingStatus.CONFIRMED.value
+                "message": f"Table {table_number} successfully assigned to booking {booking_id}.",
+                "table": table_dto.to_dict(),
+                "booking": booking_dto.to_dict()
             }), 200
 
         except Exception as e:
-            db.session.rollback()
+            db.session.rollback()  # Rollback in case of error
             return jsonify({"error": str(e)}), 500

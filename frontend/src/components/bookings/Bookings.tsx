@@ -18,7 +18,13 @@ interface Booking {
   tables: Table[];
 }
 
+const getUserFromStorage = () => {
+  const userData = sessionStorage.getItem("user");
+  return userData ? JSON.parse(userData) : null;
+};
+
 const BookingsView: React.FC = () => {
+  const [user, setUser] = React.useState(getUserFromStorage());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [tables, setTables] = useState<Table[]>([]);
@@ -29,12 +35,25 @@ const BookingsView: React.FC = () => {
   useEffect(() => {
     fetchBookings();
     fetchTables();
-  }, []);
+  }, [user]);
 
   const fetchBookings = async () => {
-    const response = await axios.get("http://127.0.0.1:5000/bookings");
-    setBookings(response.data);
+    let url = "http://127.0.0.1:5000/bookings";
+    
+    // If user is not admin, fetch only their bookings using their user_id
+    if (user && user.role !== "admin") {
+        console.log(user)
+      url = `http://127.0.0.1:5000/bookings/user/${user.user_id}`;
+    }
+  
+    try {
+      const response = await axios.get(url);
+      setBookings(response.data);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    }
   };
+  
 
   const fetchTables = async () => {
     const response = await axios.get("http://127.0.0.1:5000/tables");
@@ -92,31 +111,30 @@ const BookingsView: React.FC = () => {
               </motion.button>
             )}
 
-{booking.tables.length > 0 && (
-  <div className="mt-4 bg-white p-4 rounded-lg shadow-md">
-    <div className="text-md font-semibold mb-2">Assigned Tables:</div>
-    <ul className="space-y-3">
-      {booking.tables.map((table) => (
-        <li
-          key={table.id}
-          className={`text-sm py-2 px-4 rounded-lg transition-all duration-300 ${
-            table.status === "Confirmed"
-              ? "bg-green-100 text-green-700 hover:bg-green-200"
-              : table.status === "Pending"
-              ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          <div className="flex justify-between">
-            <span>Table {table.table_number}</span>
-            <span>({table.status})</span>
-          </div>
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
-
+            {booking.tables.length > 0 && (
+              <div className="mt-4 bg-white p-4 rounded-lg shadow-md">
+                <div className="text-md font-semibold mb-2">Assigned Tables:</div>
+                <ul className="space-y-3">
+                  {booking.tables.map((table) => (
+                    <li
+                      key={table.id}
+                      className={`text-sm py-2 px-4 rounded-lg transition-all duration-300 ${
+                        table.status === "Confirmed"
+                          ? "bg-green-100 text-green-700 hover:bg-green-200"
+                          : table.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      <div className="flex justify-between">
+                        <span>Table {table.table_number}</span>
+                        <span>({table.status})</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </motion.div>
         ))}
       </div>

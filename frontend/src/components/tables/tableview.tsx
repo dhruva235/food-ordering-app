@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify"; // Importing toast and ToastContainer
+import "react-toastify/dist/ReactToastify.css"; // Import the default styles for toasts
 
 interface Table {
   id: string;
@@ -22,7 +24,11 @@ const TablesView: React.FC = () => {
   const [newTableNumber, setNewTableNumber] = useState<number | "">("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  const USER_ID = "37701b1c-0745-4431-9361-d4457584029d"; // static user for now
+  const getUserFromStorage = () => {
+    const userData = sessionStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
+  };
+  const [user, setUser] = React.useState(getUserFromStorage());  
 
   useEffect(() => {
     fetchTables();
@@ -34,23 +40,42 @@ const TablesView: React.FC = () => {
   };
 
   const freeTable = async (id: string) => {
-    await axios.put(`http://127.0.0.1:5000/tables/free/${id}`);
-    fetchTables();
+    try {
+      await axios.put(`http://127.0.0.1:5000/tables/free/${id}`);
+      fetchTables();
+      toast.success("Table freed successfully!"); // Success toast for freeing table
+    } catch (error) {
+      toast.error("Failed to free table.");
+    }
   };
 
   const bookTable = async () => {
     if (!selectedDate || !selectedTime || !bookingTableId) return;
-    await axios.post("http://127.0.0.1:5000/bookings/", {
-      user_id: USER_ID,
-      date: selectedDate.split("-").reverse().join("-"),
-      time: selectedTime,
-    //   table_id: bookingTableId,
-    });
-    setBookingTableId(null);
-    setSelectedDate("");
-    setSelectedTime("");
-    fetchTables();
+  
+    try {
+      const response = await axios.post("http://127.0.0.1:5000/bookings/", {
+        user_id: user.user_id,
+        date: selectedDate.split("-").reverse().join("-"),
+        time: selectedTime,
+      });
+  
+      // Check if the response contains a message about the booking limit
+      if (response.data.message) {
+        toast.error(response.data.message); // Show the exact message from the API
+        return;
+      }
+  
+      setBookingTableId(null);
+      setSelectedDate("");
+      setSelectedTime("");
+      fetchTables();
+      toast.success("Table booked successfully!"); // Success toast for booking table
+    } catch (error) {
+      toast.error("Failed to book table.");
+    }
   };
+  
+  
 
   const createTable = async () => {
     if (newTableNumber === "") return;
@@ -59,17 +84,23 @@ const TablesView: React.FC = () => {
     const tableExists = tables.some((table) => table.table_number === newTableNumber);
     if (tableExists) {
       setErrorMessage("Table number already exists!");
+      toast.error("Table number already exists!"); // Error toast for existing table number
       return; // Prevent further execution if the table number is a duplicate
     }
 
     setErrorMessage(""); // Clear error message if the table number is valid
 
-    await axios.post("http://127.0.0.1:5000/tables/create", {
-      table_number: newTableNumber,
-    });
-    setNewTableNumber("");
-    setCreatePopupOpen(false);
-    fetchTables();
+    try {
+      await axios.post("http://127.0.0.1:5000/tables/create", {
+        table_number: newTableNumber,
+      });
+      setNewTableNumber("");
+      setCreatePopupOpen(false);
+      fetchTables();
+      toast.success("Table created successfully!"); // Success toast for creating table
+    } catch (error) {
+      toast.error("Failed to create table.");
+    }
   };
 
   const getTableNumber = (id: string | null) => {
@@ -248,6 +279,7 @@ const TablesView: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <ToastContainer /> {/* Container for displaying toasts */}
     </div>
   );
 };

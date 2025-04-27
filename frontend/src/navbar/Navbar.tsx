@@ -40,34 +40,40 @@ const NavigationMenuDemo = () => {
             <Link to="/find-food" className="nav-link">Find Food</Link>
           </NavigationMenu.Item>
 
-          <NavigationMenu.Item >
-<Link to="/pending_orders" className="nav-link">Pending Orders</Link>
-           
-          </NavigationMenu.Item>
+          {/* Show Pending Orders for users */}
+          {user && (
+            <NavigationMenu.Item>
+              <Link to="/pending_orders" className="nav-link">Pending Orders</Link>
+            </NavigationMenu.Item>
+          )}
 
-          <NavigationMenu.Item >
-<Link to="/old" className="nav-link">old</Link>
-           
-          </NavigationMenu.Item>
+          {/* Show "old" link for all authenticated users */}
+          {user && (
+            <NavigationMenu.Item>
+              <Link to="/old" className="nav-link">Old</Link>
+            </NavigationMenu.Item>
+          )}
 
-          <NavigationMenu.Item >
-<Link to="/tables" className="nav-link">Tables</Link>
+          {/* Show "Tables" for all authenticated users */}
+          { (
+            <NavigationMenu.Item>
+              <Link to="/tables" className="nav-link">Tables</Link>
+            </NavigationMenu.Item>
+          )}
 
-           
-          </NavigationMenu.Item>
-          <NavigationMenu.Item >
-<Link to="/bookings"className="nav-link">Bookings</Link>
+          {/* Show "Bookings" for all authenticated users */}
+          {  (
+            <NavigationMenu.Item>
+              <Link to="/bookings" className="nav-link">Bookings</Link>
+            </NavigationMenu.Item>
+          )}
 
-           
-          </NavigationMenu.Item>
-
+          {/* Show "Manage Users" only for admins */}
           {user && user.role === "admin" && (
             <NavigationMenu.Item>
               <Link to="/manage-users" className="nav-link">Manage Users</Link>
             </NavigationMenu.Item>
           )}
-
-
 
           <NavigationMenu.Item>
             <button className="icon-button">

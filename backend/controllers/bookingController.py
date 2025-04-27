@@ -55,8 +55,6 @@ def get_individual_booking(booking_uuid):
         print(f"Error fetching booking: {str(e)}")
         return jsonify({"error": "An error occurred while fetching the booking"}), 500
 
-
-
 @booking_bp.route("/<string:booking_id>", methods=["PUT"])
 def update_booking(booking_id):
     data = request.json
@@ -87,3 +85,16 @@ def assign_table(booking_id):
 
     return BookingCommands.assign_table(booking_id, table_number)
 
+@booking_bp.route("/user/<string:user_id>", methods=["GET"])
+def get_by_user_id(user_id):
+    try:
+        bookings, status_code = BookingCommands.get_all_bookings_by_user(user_id)
+        
+        # If bookings list is empty, return the appropriate message
+        if status_code == 404:
+            return bookings
+
+        return jsonify(bookings), status_code
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

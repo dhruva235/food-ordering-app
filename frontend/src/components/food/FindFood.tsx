@@ -5,6 +5,8 @@ import { Card } from "@radix-ui/themes/components/card";
 import { Button } from "@radix-ui/themes/components/button";
 import { ScrollArea } from "@radix-ui/themes/components/scroll-area";
 import { CheckCircle, Truck } from "lucide-react";
+import * as Tabs from '@radix-ui/react-tabs';
+import { groupBy } from 'lodash';  // Importing lodash's groupBy function
 
 const questions = [
   "🍔 Craving Something Delicious?",
@@ -26,6 +28,12 @@ interface CartItem extends FoodItem {
 }
 
 const FindFood = () => {
+  const getUserFromStorage = () => {
+    const userData = sessionStorage.getItem("user");
+    return userData ? JSON.parse(userData) : null;
+  };
+  
+  const [user, setUser] = useState(getUserFromStorage());
   const [menu, setMenu] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,12 +41,16 @@ const FindFood = () => {
   const [processingOrder, setProcessingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [groupedMenu, setGroupedMenu] = useState<Record<string, FoodItem[]>>({});
 
   useEffect(() => {
     axios
       .get("http://127.0.0.1:5000/menu")
       .then((response) => {
-        setMenu(response.data);
+        const groupedData = groupBy(response.data, 'category');  // Group by category
+        setGroupedMenu(groupedData);  // Set the grouped data
+        setMenu(response.data);  // You can still use the flat menu if needed
         setLoading(false);
       })
       .catch(() => {
@@ -76,12 +88,17 @@ const FindFood = () => {
   };
 
   const checkout = async () => {
+    if (!user) {
+      alert("Please login before proceeding to checkout.");
+      return;
+    }
+
     if (cart.length === 0) return;
   
     setProcessingOrder(true);
   
     const orderData = {
-      user_id: "9daa1b20-2f99-4c35-8f77-2f390adab1f8",
+      user_id: user.user_id,
       order_items: cart.map(({ name, price, quantity }) => ({
         name,
         price,
@@ -104,10 +121,13 @@ const FindFood = () => {
       console.error("Checkout failed:", error);
     }
   };
-  
+
+  const filteredMenu = selectedCategory 
+    ? groupedMenu[selectedCategory] || []  // Use the grouped menu based on category
+    : menu; // Show all items if no category is selected
 
   return (
-    <div className="min-h-screen flex flex-col items-center text-white p-6 bg-gray-900">
+    <div className="min-h-screen flex flex-col items-center text-gray-800 p-6 bg-gray-100">
       {/* Animated Heading */}
       <motion.h1
         className="text-4xl font-extrabold text-center mb-6"
@@ -124,13 +144,37 @@ const FindFood = () => {
         {questions[questionIndex]}
       </motion.h1>
 
+  {/* Category Tabs */}
+<Tabs.Root defaultValue="all" onValueChange={setSelectedCategory}>
+  <Tabs.List className="flex space-x-6 mb-8">
+    <div className="flex justify-center gap-6 mb-12 flex-wrap">
+      {Object.keys(groupedMenu).map((category) => (
+        <motion.button
+          key={category}
+          onClick={() => setSelectedCategory(category)}
+          className={`px-5 py-2 rounded-full text-base font-medium transition-all duration-300 ${
+            selectedCategory === category
+              ? "bg-teal-600 text-white"
+              : "bg-gray-200 text-gray-700 hover:bg-teal-100"
+          }`}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {category}
+        </motion.button>
+      ))}
+    </div>
+  </Tabs.List>
+</Tabs.Root>
+
+
       {/* Layout */}
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Food Menu Section */}
         <div className="col-span-2">
           <ScrollArea className="max-h-[70vh] overflow-y-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {menu.map((item) => (
+              {filteredMenu.map((item) => (
                 <motion.div
                   key={item.id}
                   className="cursor-pointer"
@@ -143,13 +187,13 @@ const FindFood = () => {
                     <img
                       src={item.image_url}
                       alt={item.name}
-                      className="w-32 h-32 object-cover rounded-lg mb-3"
+                      className="w-full h-40 object-cover rounded-lg mb-3"  // Make the image fill the card but keep its aspect ratio
                     />
-                    <h3 className="text-lg font-semibold">{item.name}</h3>
-                    <p className="text-gray-700 text-sm text-center">{item.description}</p>
-                    <p className="text-lg font-bold text-yellow-500 mt-2">${item.price.toFixed(2)}</p>
+                    <h3 className="text-lg font-semibold text-gray-800">{item.name}</h3>
+                    <p className="text-gray-600 text-sm text-center">{item.description}</p>
+                    <p className="text-lg font-bold text-gray-800 mt-2">${item.price.toFixed(2)}</p>
                     <Button
-                      className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-lg px-4 py-2 mt-3"
+                      className="bg-green-500 hover:bg-green-400 text-white font-bold rounded-lg px-4 py-2 mt-3"
                       onClick={() => addToCart(item)}
                     >
                       + Add to Cart
@@ -162,8 +206,8 @@ const FindFood = () => {
         </div>
 
         {/* Cart Section (Sticky Sidebar) */}
-        <div className="sticky top-6 bg-gray-800 p-5 rounded-lg shadow-lg h-fit">
-          <h2 className="text-xl font-bold text-white mb-4">🛒 Your Cart</h2>
+        <div className="sticky top-6 bg-white p-5 rounded-lg shadow-lg h-fit border border-gray-200">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">🛒 Your Cart</h2>
 
           {/* Checkout Animation */}
           {orderPlaced ? (
@@ -174,32 +218,32 @@ const FindFood = () => {
               transition={{ duration: 0.7 }}
             >
               <CheckCircle className="text-green-500 w-16 h-16 mb-4" />
-              <p className="text-lg font-semibold text-white">Order Placed Successfully!</p>
+              <p className="text-lg font-semibold text-gray-800">Order Placed Successfully!</p>
               <motion.div
                 className="mt-4"
                 initial={{ x: -50 }}
                 animate={{ x: 50 }}
                 transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
               >
-                <Truck className="text-yellow-500 w-12 h-12" />
+                <Truck className="text-green-600 w-12 h-12" />
               </motion.div>
             </motion.div>
           ) : cart.length === 0 ? (
-            <p className="text-gray-400">Your cart is empty.</p>
+            <p className="text-gray-500">Your cart is empty.</p>
           ) : (
             <>
-              <ul className="text-white space-y-3">
+              <ul className="text-gray-800 space-y-3">
                 {cart.map((item) => (
                   <li
                     key={item.id}
-                    className="bg-gray-700 p-3 rounded-lg flex justify-between items-center shadow-md"
+                    className="bg-gray-100 p-3 rounded-lg flex justify-between items-center shadow-md"
                   >
                     <div>
                       <span className="font-semibold">{item.name}</span>
                       <span className="ml-2 text-gray-400">x{item.quantity}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-bold text-gray-700">${(item.price * item.quantity).toFixed(2)}</span>
                       <Button
                         className="bg-red-500 hover:bg-red-600 text-white rounded-lg px-2 py-1 text-sm"
                         onClick={() => removeFromCart(item.id)}
@@ -212,11 +256,11 @@ const FindFood = () => {
               </ul>
 
               <Button
-                className="bg-green-500 hover:bg-green-600 text-white font-bold w-full mt-4 py-2 rounded-lg"
+                className="bg-green-500 hover:bg-green-400 text-white font-bold w-full mt-4 py-2 rounded-lg"
                 onClick={checkout}
                 disabled={processingOrder}
               >
-                {processingOrder ? "Processing..." : "Proceed to Checkout"}
+                {processingOrder ? "Processing..." : user ? "Proceed to Checkout" : "Please Login to Checkout"}
               </Button>
             </>
           )}

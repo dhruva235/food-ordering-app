@@ -82,7 +82,8 @@ def get_user(user_id):
         return jsonify({
             "id": user.id,
             "name": user.name,
-            "email": user.email
+            "email": user.email,
+             "role":user.role
         }), 200
     except ValueError:
         return jsonify({"error": "Invalid UUID format"}), 400
@@ -98,7 +99,8 @@ def get_all_users():
         {
             "id": user.id,
             "name": user.name,
-            "email": user.email
+            "email": user.email,
+            "role":user.role
         }
         for user in users
     ]
@@ -149,3 +151,23 @@ def reset_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+@user_bp.route("/<string:user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    try:
+        # Find the user by ID
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Delete the user
+        db.session.delete(user)
+        db.session.commit()
+
+        return jsonify({"message": f"User {user_id} deleted successfully"}), 200
+
+    except ValueError:
+        return jsonify({"error": "Invalid UUID format"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500    

@@ -76,10 +76,9 @@ const TablesView: React.FC = () => {
   };
   
   
-
   const createTable = async () => {
     if (newTableNumber === "") return;
-
+  
     // Check if the table number already exists
     const tableExists = tables.some((table) => table.table_number === newTableNumber);
     if (tableExists) {
@@ -87,22 +86,29 @@ const TablesView: React.FC = () => {
       toast.error("Table number already exists!"); // Error toast for existing table number
       return; // Prevent further execution if the table number is a duplicate
     }
-
+  
+    // Check if the table limit has been reached (100 tables)
+    if (tables.length >= 100) {
+      setErrorMessage("Table limit reached. You can only create up to 100 tables.");
+      toast.error("Table limit reached. You can only create up to 100 tables.");
+      return; // Prevent further execution if the table limit is reached
+    }
+  
     setErrorMessage(""); // Clear error message if the table number is valid
-
+  
     try {
       await axios.post("http://127.0.0.1:5000/tables/create", {
         table_number: newTableNumber,
       });
       setNewTableNumber("");
       setCreatePopupOpen(false);
-      fetchTables();
+      fetchTables(); // Refresh table list after creating a new table
       toast.success("Table created successfully!"); // Success toast for creating table
     } catch (error) {
       toast.error("Failed to create table.");
     }
   };
-
+  
   const getTableNumber = (id: string | null) => {
     const table = tables.find((t) => t.id === id);
     return table?.table_number ?? "";
@@ -113,14 +119,17 @@ const TablesView: React.FC = () => {
       <h1 className="text-4xl font-bold text-center mb-10 text-purple-600">Table Booking</h1>
 
       {/* Create Table Button */}
-      <div className="flex justify-center mb-8">
-        <button
-          onClick={() => setCreatePopupOpen(true)}
-          className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-6 py-3 rounded-full shadow-lg transition-transform transform hover:scale-105"
-        >
-          Create New Table
-        </button>
-      </div>
+   {user?.role === "admin" &&
+    <div className="flex justify-center mb-8">
+    <button
+      onClick={() => setCreatePopupOpen(true)}
+      className="bg-purple-500 hover:bg-purple-600 text-white font-semibold px-6 py-3 rounded-full shadow-lg transition-transform transform hover:scale-105"
+    >
+      Create New Table
+    </button>
+  
+  </div>
+   }  
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-center">
         {/* Sort tables by table number */}
@@ -188,6 +197,7 @@ const TablesView: React.FC = () => {
               className="bg-white p-8 rounded-2xl shadow-2xl w-96 flex flex-col items-center border border-purple-300 relative"
             >
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Book Table</h2>
+            
 
               <div className="text-lg font-semibold text-purple-700 mb-6">
                 Table {getTableNumber(bookingTableId)}

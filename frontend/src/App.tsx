@@ -11,6 +11,7 @@ import TableView from "./components/tables/tableview";
 import BookingsView from "./components/bookings/Bookings";
 import React from "react";
 import Menu from "./hero/menu";
+import CreateMenuItemForm from "./components/food/createFood";
 
 export default function App() {
 
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/tables" element={<TableView />} />
         <Route path="/bookings" element={<BookingsView />} />
         <Route path="/menus" element={<Menu/>} />
+        <Route path="/create" element={<CreateMenuItemForm/>}/>
       </Routes>
     </Router>
   );

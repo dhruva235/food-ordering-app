@@ -68,6 +68,12 @@ const NavigationMenuDemo = () => {
             </NavigationMenu.Item>
           )}
 
+{  (
+            <NavigationMenu.Item>
+              <Link to="/create" className="nav-link">Add Food</Link>
+            </NavigationMenu.Item>
+          )}
+
           {/* Show "Manage Users" only for admins */}
           {user && user.role === "admin" && (
             <NavigationMenu.Item>

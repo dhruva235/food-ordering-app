@@ -6,6 +6,7 @@ import burgerImage from "../assets/burger.avif";
 import SelectDemo from "./bookingForm";
 // import { useNavigate } from "react-router-dom";
 import { useLocation, useNavigate } from "react-router-dom";
+import BookingForm from "./bookingForm";
 
 const getUserFromStorage = () => {
   const userData = sessionStorage.getItem("user");
@@ -137,7 +138,7 @@ const HeroSection = () => {
         </motion.div>
       </section>
 
-      <SelectDemo />
+      <BookingForm />
     </>
   );
 };
